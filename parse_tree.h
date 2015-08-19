@@ -70,14 +70,14 @@ namespace parse_tree {
                     // in a fixed order, so this characterizer
                     // what production this node entails.
                     int production_index = -1;
-                    std::list<std::weak_ptr<node>> children = {};
+                    std::list<node*> children = {};
                     const symbol my_symbol;
                 public:
                     node(const symbol my_symbol): my_symbol(my_symbol) {}
             };
 
             // What state is a node in?
-            node_state state(std::weak_ptr<node> n) const {
+            node_state state(node* n) const {
                 if (g.is_terminal(n->my_symbol)) {
                     assert(n->children.size() == 0);
                     assert(n->production_index == -1);
@@ -96,12 +96,12 @@ namespace parse_tree {
                 }
             }
 
-            std::shared_ptr<node> root = nullptr;
+            node* root = nullptr;
 
             // given a node, assert that the children it has
             // match the production the node thinks it is.
-            bool verify_children(std::weak_ptr<node> n) const {
-                assert(state(n) == node_state::developed_nonterminal);
+            bool verify_children(node* n) const {
+                //assert(state(n) == node_state::developed_nonterminal);
 
                 production p = g[n->production_index];
 
@@ -122,7 +122,7 @@ namespace parse_tree {
 
 
             // Helper function to find the "first" undeveloped child
-            std::weak_ptr<node> undeveloped_child(std::weak_ptr<node> p) {
+            node* undeveloped_child(node* p) {
                 assert(p != nullptr);
                 auto s = state(p);
                 if (s == node_state::undeveloped_nonterminal) { return p; }
@@ -137,9 +137,9 @@ namespace parse_tree {
             }
 
             // Given a tree, make a deep copy of it! A fun problem.
-            std::shared_ptr<node> deep_copy(std::weak_ptr<node> p) const {
+            node* deep_copy(node* p) const {
                 assert(p != nullptr);
-                std::shared_ptr<node> new_root = std::make_shared<node>(p->my_symbol);
+                node* new_root = new node(p->my_symbol);
                 for (auto&& c : p->children) {
                     new_root->children.push_back(deep_copy(c));
                 }
@@ -150,9 +150,7 @@ namespace parse_tree {
             // The main action: apply the production g[production_index]
             // to the first undeveloped node. This transforms the tree.
             bool internal_apply_production(int production_index) {
-                cerr << "finding undeveloped child" << endl;
                 auto child = undeveloped_child(root);
-                cerr << "found undeveloped child" << endl;
                 if (child == nullptr) { return false; }
                 if (state(child) != node_state::undeveloped_nonterminal) {
                     return false;
@@ -162,27 +160,21 @@ namespace parse_tree {
                     return false;
                 }
                 else {
-                    cerr << "trying with production (" << new_production << ")" << endl;
                     for (auto&& s : new_production.rhs) {
-                        cerr << child << endl;
-                        auto developed_child = std::make_shared<node>(s);
-                        cerr << developed_child->my_symbol << endl;
+                        auto developed_child = new node(s);
                         child->children.push_back(developed_child);
-                        cerr << "added" << endl;
                     }
-                    cerr << "Setting index" << endl;
                     child->production_index = production_index;
-                    cerr << "set index " << root.get_count() << endl;
                     assert(state(child) == node_state::developed_nonterminal);
                     return true;
                 }
             }
-            parse_tree(const grammar& g, const std::shared_ptr<node> new_root):
+            parse_tree(const grammar& g, node* new_root):
                 g(g), root(new_root) {
                     assert(root != nullptr);
                 }
 
-            void print_tree(std::ostream& o, std::weak_ptr<node> p) const {
+            void print_tree(std::ostream& o, node* p) const {
                 // if I'm a leaf, print me
                 if (p->children.size() == 0) {
                     o << p->my_symbol;
@@ -195,20 +187,18 @@ namespace parse_tree {
                 }
             }
 
+
         public:
+            parse_tree(const parse_tree& p): g(p.g), root(p.root) {}
             parse_tree(const grammar& g):
-                g(g), root(std::make_shared<node>(g.start_symbol())) {}
+                g(g), root(new node(g.start_symbol())) {}
 
             // create a new parse tree, a copy of this one but with
             // a production applied
             parse_tree apply_production(int production_index) const {
-                cerr << "making deep copy" << endl;
-                std::weak_ptr<node> new_root = deep_copy(root);
-                cerr << "made deep copy" << endl;
+                node* new_root = deep_copy(root);
                 parse_tree ret_value(g, new_root);
-                cerr << "applying production" << endl;
                 ret_value.internal_apply_production(production_index);
-                cerr << "applied production" << endl;
                 return ret_value;
             }
 

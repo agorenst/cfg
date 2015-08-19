@@ -13,7 +13,9 @@ const cfg::grammar arithmetic{
 int main() {
     parse_tree::parse_tree start(arithmetic);
     auto next = start.apply_production(2);
+    auto next2 = next.apply_production(3);
 
     cout << start << endl;
     cout << next << endl;
+    cout << next2 << endl;
 }
