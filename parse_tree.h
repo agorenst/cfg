@@ -1,12 +1,6 @@
 #ifndef PARSE_TREE_H
 #define PARSE_TREE_H
 
-#include "cfg.h"
-using namespace cfg;
-#include <memory>
-using namespace std;
-#include <cassert>
-
 //////////////////////////////////////////////////////////////////////////////
 // This modules presents a basic parse tree datatype.
 // A parse tree is always defined relative to some (constant) grammar.
@@ -37,119 +31,197 @@ using namespace std;
 //      production, and a sequence of children nodes whose symbols exactly
 //      correspond to those in the prodcuction.
 //////////////////////////////////////////////////////////////////////////////
-class parse_tree {
-    public:
-        // The possible states a parse_tree node can be in.
-        // It is invariant that the parse_tree is in one
-        // of these states.
-        enum class node_state {
-            terminal_leaf,
-            undeveloped_nonterminal,
-            developed_nonterminal
-        };
-    public:
-        // The data type used to express a node of a parse tree.
-        // It is always in one of the three node states enumerated
-        // below.
-        class node {
-            public:
-            const grammar& g;
-            int i = -1;
-            sequence<std::shared_ptr<node>> c = {};
-            const symbol s;
-            node(const symbol s): s(s) {}
 
-            void develop(const cfg::production& p, int index);
-            
-            shared_ptr<node> first_undeveloped_child() {
-                assert(state() != node_state::undeveloped_nonterminal);
-                for (auto&& child : c) {
-                    // check our child
-                    if (child->state() == node_state::undeveloped_nonterminal) {
-                        return child;
-                    }
-                    // check our descendants
-                    shared_ptr<node> und_cand = child->first_undeveloped_child();
-                    if (und_cand != nullptr) { return und_cand; }
+#include <memory>
+#include <cassert>
+
+#include <iostream>
+using namespace std;
+
+// A parse tree only makes sense relative to some grammar
+#include "cfg.h"
+
+namespace parse_tree {
+    // An explicit reperesentation of a parse tree.
+    // The fundamental action we care about is finding and "developing"
+    // a leaf.
+    class parse_tree {
+        typedef cfg::symbol symbol;
+        typedef cfg::grammar grammar;
+        typedef cfg::production production;
+        private:
+            // The possible states a parse_tree node can be in.
+            // It is invariant that each node is in one
+            // of these states.
+            enum class node_state {
+                terminal_leaf,
+                undeveloped_nonterminal,
+                developed_nonterminal
+            };
+
+            // The grammar
+            const cfg::grammar& g;
+
+            // The recursive node type defining our tree.
+            // It is just a container for some bits of data.
+            class node {
+                public:
+                    // we assume that g provides productions
+                    // in a fixed order, so this characterizer
+                    // what production this node entails.
+                    int production_index = -1;
+                    std::list<std::weak_ptr<node>> children = {};
+                    const symbol my_symbol;
+                public:
+                    node(const symbol my_symbol): my_symbol(my_symbol) {}
+            };
+
+            // What state is a node in?
+            node_state state(std::weak_ptr<node> n) const {
+                if (g.is_terminal(n->my_symbol)) {
+                    assert(n->children.size() == 0);
+                    assert(n->production_index == -1);
+                    return node_state::terminal_leaf;
                 }
-                //fail
+                else {
+                    if (n->production_index == -1) {
+                        assert(n->children.size() == 0);
+                        return node_state::undeveloped_nonterminal;
+                    }
+                    else {
+                        assert(n->children.size() > 0);
+                        assert(verify_children(n));
+                        return node_state::developed_nonterminal;
+                    }
+                }
+            }
+
+            std::shared_ptr<node> root = nullptr;
+
+            // given a node, assert that the children it has
+            // match the production the node thinks it is.
+            bool verify_children(std::weak_ptr<node> n) const {
+                assert(state(n) == node_state::developed_nonterminal);
+
+                production p = g[n->production_index];
+
+                auto production_rhs_iterator = p.rhs.begin();
+                auto children_iterator =  n->children.begin();
+
+                for (; children_iterator != n->children.end()
+                    && production_rhs_iterator != p.rhs.end();
+                    ++children_iterator, ++production_rhs_iterator) {
+                    
+                    if ((*children_iterator)->my_symbol != *production_rhs_iterator) {
+                        return false;
+                    }
+                }
+                return children_iterator == n->children.end()
+                    && production_rhs_iterator == p.rhs.end();
+            }
+
+
+            // Helper function to find the "first" undeveloped child
+            std::weak_ptr<node> undeveloped_child(std::weak_ptr<node> p) {
+                assert(p != nullptr);
+                auto s = state(p);
+                if (s == node_state::undeveloped_nonterminal) { return p; }
+                else if (s == node_state::terminal_leaf) { return nullptr; }
+                else {
+                    for (auto&& c : p->children) {
+                        auto d = undeveloped_child(c);
+                        if (d != nullptr) { return d; }
+                    }
+                }
                 return nullptr;
             }
-            shared_ptr<const node> first_undeveloped_child() const {
-                assert(state() != node_state::undeveloped_nonterminal);
-                for (auto&& child : c) {
-                    // check our child
-                    if (child->state() == node_state::undeveloped_nonterminal) {
-                        return child;
-                    }
-                    // check our descendants
-                    shared_ptr<node> und_cand = child->first_undeveloped_child();
-                    if (und_cand != nullptr) { return und_cand; }
+
+            // Given a tree, make a deep copy of it! A fun problem.
+            std::shared_ptr<node> deep_copy(std::weak_ptr<node> p) const {
+                assert(p != nullptr);
+                std::shared_ptr<node> new_root = std::make_shared<node>(p->my_symbol);
+                for (auto&& c : p->children) {
+                    new_root->children.push_back(deep_copy(c));
                 }
-                //fail
-                return nullptr;
+                new_root->production_index = p->production_index;
+                return new_root;
             }
-            node_state state() const;
-        };
 
-        // Essentially, the class "parse_tree" is just a wrapper over
-        // some shared_ptr<node>. We could be cute and operate on just
-        // the shared_ptrs directly, but that makes some things (e.g.,
-        // implementing methods) difficult.
-    public:
-        // A parse tree only makes sense relative to some fixed grammar.
-        const grammar& g;
-
-
-        std::shared_ptr<node> root;
-
-        parse_tree(const grammar& g, const symbol s): g(g), root(std::make_shared<node>(s)) {}
-        parse_tree deep_copy() const;
-
-        sequence<symbol> print_leaves();
-
-        shared_ptr<const node> first_undeveloped() const {
-            if (root->state() == node_state::undeveloped_nonterminal) {
-                return root;
+            // The main action: apply the production g[production_index]
+            // to the first undeveloped node. This transforms the tree.
+            bool internal_apply_production(int production_index) {
+                cerr << "finding undeveloped child" << endl;
+                auto child = undeveloped_child(root);
+                cerr << "found undeveloped child" << endl;
+                if (child == nullptr) { return false; }
+                if (state(child) != node_state::undeveloped_nonterminal) {
+                    return false;
+                }
+                production new_production = g[production_index];
+                if (child->my_symbol != new_production.lhs) {
+                    return false;
+                }
+                else {
+                    cerr << "trying with production (" << new_production << ")" << endl;
+                    for (auto&& s : new_production.rhs) {
+                        cerr << child << endl;
+                        auto developed_child = std::make_shared<node>(s);
+                        cerr << developed_child->my_symbol << endl;
+                        child->children.push_back(developed_child);
+                        cerr << "added" << endl;
+                    }
+                    cerr << "Setting index" << endl;
+                    child->production_index = production_index;
+                    cerr << "set index " << root.get_count() << endl;
+                    assert(state(child) == node_state::developed_nonterminal);
+                    return true;
+                }
             }
-            return root->first_undeveloped_child();
-        }
-        shared_ptr<node> first_undeveloped() {
-            if (root->state() == node_state::undeveloped_nonterminal) {
-                return root;
+            parse_tree(const grammar& g, const std::shared_ptr<node> new_root):
+                g(g), root(new_root) {
+                    assert(root != nullptr);
+                }
+
+            void print_tree(std::ostream& o, std::weak_ptr<node> p) const {
+                // if I'm a leaf, print me
+                if (p->children.size() == 0) {
+                    o << p->my_symbol;
+                }
+                // Otherwise, get to my kids.
+                else {
+                    for(auto&& c : p->children) {
+                        print_tree(o, c);
+                    }
+                }
             }
-            return root->first_undeveloped_child();
-        }
 
-        sequence<parse_tree> develop_first() const {
-            sequence<parse_tree> ret_val = {};
+        public:
+            parse_tree(const grammar& g):
+                g(g), root(std::make_shared<node>(g.start_symbol())) {}
 
-            shared_ptr<const node> to_develop = first_undeveloped();
-            // if there is no undeveloped nodes, then we're done.
-            if (to_develop == nullptr) { return ret_val; }
-
-            symbol nonterminal = to_develop->s;
-
-            assert(g.is_nonterminal(nonterminal));
-            sequence<production> all_productions = g.productions_from_nonterminal(nonterminal);
-            for (auto&& prod : all_productions) {
-
-                // create q
-                parse_tree p = deep_copy();
-
-                // find that analogous node to "to_develop"
-                // (TODO: what's a nice way of asserting that?)
-                shared_ptr<node> sub_develop = p.first_undeveloped();
-
-                // develop it
-                sub_develop->develop(prod, p.g.index_of(prod));
-
-                // save it
-                ret_val.push_back(p);
+            // create a new parse tree, a copy of this one but with
+            // a production applied
+            parse_tree apply_production(int production_index) const {
+                cerr << "making deep copy" << endl;
+                std::weak_ptr<node> new_root = deep_copy(root);
+                cerr << "made deep copy" << endl;
+                parse_tree ret_value(g, new_root);
+                cerr << "applying production" << endl;
+                ret_value.internal_apply_production(production_index);
+                cerr << "applied production" << endl;
+                return ret_value;
             }
-            return ret_val;
-        }
-};
 
+            void print_leaves(std::ostream& o) const {
+                print_tree(o, root);
+            }
+    };
+
+}
+
+std::ostream& operator<<(std::ostream& o, const parse_tree::parse_tree& p) {
+    p.print_leaves(o);
+    return o;
+}
 
 #endif
