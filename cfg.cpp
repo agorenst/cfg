@@ -106,22 +106,22 @@ namespace cfg {
 // of the CFG class to make sure nothing's absolutely egregiously
 // wrong.
 
-using namespace cfg;
-
-// An example of how we can succinctly define grammars "in-code"
-// for the hard-coded case.
-const grammar arithmetic{
-    {"S", "S", "+", "S"},
-    {"S", "S", "-", "S"},
-    {"S", "S", "/", "S"},
-    {"S", "S", "*", "S"},
-    {"S", "n"}
-};
-
-int main() {
-    // Sample usage: ./cfg < arith.cfg
-    grammar g = read_grammar(cin);
-    cout << g << endl;
-    cout << arithmetic << endl;
-    return 0;
-}
+//using namespace cfg;
+//
+//// An example of how we can succinctly define grammars "in-code"
+//// for the hard-coded case.
+//const grammar arithmetic{
+//    {"S", "S", "+", "S"},
+//    {"S", "S", "-", "S"},
+//    {"S", "S", "/", "S"},
+//    {"S", "S", "*", "S"},
+//    {"S", "n"}
+//};
+//
+//int main() {
+//    // Sample usage: ./cfg < arith.cfg
+//    grammar g = read_grammar(cin);
+//    cout << g << endl;
+//    cout << arithmetic << endl;
+//    return 0;
+//}

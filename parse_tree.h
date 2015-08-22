@@ -49,7 +49,7 @@ namespace parse_tree {
         typedef cfg::symbol symbol;
         typedef cfg::grammar grammar;
         typedef cfg::production production;
-        private:
+        public:
             // The possible states a parse_tree node can be in.
             // It is invariant that each node is in one
             // of these states.
@@ -122,7 +122,7 @@ namespace parse_tree {
 
 
             // Helper function to find the "first" undeveloped child
-            node* undeveloped_child(node* p) {
+            node* undeveloped_child(node* p) const {
                 assert(p != nullptr);
                 auto s = state(p);
                 if (s == node_state::undeveloped_nonterminal) { return p; }
@@ -187,6 +187,39 @@ namespace parse_tree {
                 }
             }
 
+            int tree_size(node* t) const {
+                if (t == nullptr) { return 0; }
+
+                int sum = 1;
+                for (auto&& c : t->children) {
+                    sum += tree_size(c);
+                }
+                return sum;
+            }
+
+            int leaf_count(node* t) const {
+                if (state(t) == node_state::terminal_leaf) {
+                    return 1;
+                }
+                int sum = 0;
+                for (auto&& c : t->children) {
+                    sum += leaf_count(c);
+                }
+                return sum;
+            }
+
+            bool is_fully_developed(node* t) const {
+                if (state(t) == node_state::undeveloped_nonterminal) {
+                    return false;
+                }
+                for (auto&& c : t->children) {
+                    if (!is_fully_developed(c)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
 
         public:
             parse_tree(const parse_tree& p): g(p.g), root(p.root) {}
@@ -201,10 +234,33 @@ namespace parse_tree {
                 ret_value.internal_apply_production(production_index);
                 return ret_value;
             }
+            
+            bool has_undeveloped() const {
+                return undeveloped_child(root) != nullptr;
+            }
+
+            symbol undeveloped_symbol() const {
+                node* und = undeveloped_child(root);
+                assert(und != nullptr);
+                return und->my_symbol;
+            }
 
             void print_leaves(std::ostream& o) const {
                 print_tree(o, root);
             }
+
+            int size() const {
+                return tree_size(root);
+            }
+
+            int leaf_count() const {
+                return leaf_count(root);
+            }
+
+            bool is_fully_developed() const {
+                return is_fully_developed(root);
+            }
+
     };
 
 }
