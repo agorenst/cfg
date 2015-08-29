@@ -34,6 +34,9 @@
 
 #include <memory>
 #include <cassert>
+#include <stack>
+#include <algorithm>
+#include <iterator>
 
 #include <iostream>
 using namespace std;
@@ -72,6 +75,38 @@ namespace cfg {
             };
 
 
+            // Not a real iterator, but enough to hook into some basic
+            // std::algorithm stuff.
+            class const_iterator : public std::iterator<forward_iterator_tag, node const*>{
+                private:
+                node* t;
+                std::stack<node*> work_list;
+                public:
+                const_iterator (node* t): t(t) {
+                    if (t != nullptr) {
+                        for (auto it = t->children.rbegin(); it != t->children.rend(); ++it) {
+                            work_list.push(it->get());
+                        }
+                    }
+                }
+                void operator++() {
+                    if (work_list.size()) {
+                        t = work_list.top();
+                        work_list.pop();
+                        for (auto it = t->children.rbegin(); it != t->children.rend(); ++it) {
+                            work_list.push(it->get());
+                        }
+                    }
+                    else {
+                        t = nullptr;
+                    }
+                }
+                node* operator*() { return t; }
+                bool operator!=(const const_iterator& it) const { return t != it.t; }
+            };
+
+            const_iterator begin() const { return const_iterator{root.get()}; }
+            const_iterator end() const { return const_iterator{nullptr}; } 
             
             const grammar& g;
             std::shared_ptr<node> root = nullptr;
@@ -85,6 +120,7 @@ namespace cfg {
 
             // What state is a node in?
             node_state state(node const * n) const;
+
 
             // Helper function to find the "first" undeveloped child
             node* undeveloped_child(node* p) const {
@@ -124,55 +160,12 @@ namespace cfg {
 
             template<typename F>
             void map_tree(node const* t, F f) {
+                assert(t != nullptr);
                 f(t);
                 for (auto&& c : t->children) {
                     map_tree(c.get(), f);
                 }
             }
-
-            int size() {
-                int sum = 0;
-                map_tree(root, [&sum](node const* t) {
-                    ++sum;
-                });
-                return sum;
-            }
-            int leaf_count() {
-            }
-
-            int tree_size(node* t) const {
-                if (t == nullptr) { return 0; }
-
-                int sum = 1;
-                for (auto&& c : t->children) {
-                    sum += tree_size(c.get());
-                }
-                return sum;
-            }
-
-            int leaf_count(node* t) const {
-                if (state(t) == node_state::terminal_leaf) {
-                    return 1;
-                }
-                int sum = 0;
-                for (auto&& c : t->children) {
-                    sum += leaf_count(c.get());
-                }
-                return sum;
-            }
-
-            bool is_fully_developed(node* t) const {
-                if (state(t) == node_state::undeveloped_nonterminal) {
-                    return false;
-                }
-                for (auto&& c : t->children) {
-                    if (!is_fully_developed(c.get())) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-
 
         public:
             parse_tree(const parse_tree& p): g(p.g), root(p.root) {}
@@ -201,19 +194,23 @@ namespace cfg {
             void print_leaves(std::ostream& o) const {
                 print_tree(o, root.get());
             }
-
             int size() const {
-                return tree_size(root.get());
+                return std::distance(begin(), end());
             }
-
-            int leaf_count() const {
-                return leaf_count(root.get());
+            int leaf_count() {
+                return std::count_if(begin(), end(), [&](node const* t) {
+                    return state(t) == node_state::terminal_leaf;
+                });
             }
-
-            bool is_fully_developed() const {
-                return is_fully_developed(root.get());
+            bool is_fully_developed() {
+                bool counter_example_found = false;
+                map_tree(root.get(), [&](node const* t) {
+                    if (state(t) == node_state::undeveloped_nonterminal) {
+                        counter_example_found = true;
+                    }
+                });
+                return !counter_example_found;
             }
-
     };
 
 }
