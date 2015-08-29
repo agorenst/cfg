@@ -3,42 +3,30 @@
 using namespace cfg;
 
 parse_tree::node_state parse_tree::state(node const * n) const {
-                if (g.is_terminal(n->my_symbol)) {
-                    assert(n->children.size() == 0);
-                    assert(n->production_index == -1);
-                    return node_state::terminal_leaf;
-                }
-                else {
-                    if (n->production_index == -1) {
-                        assert(n->children.size() == 0);
-                        return node_state::undeveloped_nonterminal;
-                    }
-                    else {
-                        assert(n->children.size() > 0);
-                        assert(verify_children(n));
-                        return node_state::developed_nonterminal;
-                    }
-                }
+    if (g.is_terminal(n->my_symbol)) {
+        assert(n->children.size() == 0);
+        assert(n->production_index == -1);
+        return node_state::terminal_leaf;
+    }
+    else {
+        if (n->production_index == -1) {
+            assert(n->children.size() == 0);
+            return node_state::undeveloped_nonterminal;
+        }
+        else {
+            assert(n->children.size() > 0);
+            assert(verify_children(n));
+            return node_state::developed_nonterminal;
+        }
+    }
 }
 
 bool parse_tree::verify_children(node const * n) const {
-    //assert(state(n) == node_state::developed_nonterminal);
-
     production p = g[n->production_index];
 
-    auto production_rhs_iterator = p.rhs.begin();
-    auto children_iterator =  n->children.begin();
-
-    for (; children_iterator != n->children.end()
-            && production_rhs_iterator != p.rhs.end();
-            ++children_iterator, ++production_rhs_iterator) {
-
-        if ((*children_iterator)->my_symbol != *production_rhs_iterator) {
-            return false;
-        }
-    }
-    return children_iterator == n->children.end()
-        && production_rhs_iterator == p.rhs.end();
+    auto match_seq = std::mismatch(p.rhs.begin(), p.rhs.end(), n->children.begin(),
+    [](const symbol& s, const std::shared_ptr<node> t) { return s == t->my_symbol; });
+    return match_seq.second == n->children.end();
 }
 
 std::shared_ptr<parse_tree::node> parse_tree::deep_copy(node const* p) const {
@@ -52,7 +40,7 @@ std::shared_ptr<parse_tree::node> parse_tree::deep_copy(node const* p) const {
 }
 
 bool parse_tree::internal_apply_production(int production_index) {
-    auto child = undeveloped_child(root.get());
+    auto child = undeveloped_child();
     if (child == nullptr) { return false; }
     if (state(child) != node_state::undeveloped_nonterminal) {
         return false;

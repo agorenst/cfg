@@ -103,11 +103,15 @@ namespace cfg {
                 }
                 node* operator*() { return t; }
                 bool operator!=(const const_iterator& it) const { return t != it.t; }
+                bool operator==(const const_iterator& it) const { return t == it.t; }
             };
 
             const_iterator begin() const { return const_iterator{root.get()}; }
             const_iterator end() const { return const_iterator{nullptr}; } 
             
+
+            // These are the only two fields in the parse tree!
+            // The root pointer, and a reference to the grammar.
             const grammar& g;
             std::shared_ptr<node> root = nullptr;
 
@@ -123,18 +127,12 @@ namespace cfg {
 
 
             // Helper function to find the "first" undeveloped child
-            node* undeveloped_child(node* p) const {
-                assert(p != nullptr);
-                auto s = state(p);
-                if (s == node_state::undeveloped_nonterminal) { return p; }
-                else if (s == node_state::terminal_leaf) { return nullptr; }
-                else {
-                    for (auto&& c : p->children) {
-                        auto d = undeveloped_child(c.get());
-                        if (d != nullptr) { return d; }
-                    }
-                }
-                return nullptr;
+            node* undeveloped_child() const {
+                auto res = find_if(begin(), end(), [&](node const* t) {
+                    return state(t) == node_state::undeveloped_nonterminal;
+                });
+                if (res == end()) { return nullptr; }
+                return *res;
             }
 
 
@@ -158,15 +156,6 @@ namespace cfg {
                 }
             }
 
-            template<typename F>
-            void map_tree(node const* t, F f) {
-                assert(t != nullptr);
-                f(t);
-                for (auto&& c : t->children) {
-                    map_tree(c.get(), f);
-                }
-            }
-
         public:
             parse_tree(const parse_tree& p): g(p.g), root(p.root) {}
             parse_tree(const grammar& g):
@@ -182,11 +171,11 @@ namespace cfg {
             }
             
             bool has_undeveloped() const {
-                return undeveloped_child(root.get()) != nullptr;
+                return undeveloped_child() != nullptr;
             }
 
             symbol undeveloped_symbol() const {
-                node* und = undeveloped_child(root.get());
+                node* und = undeveloped_child();
                 assert(und != nullptr);
                 return und->my_symbol;
             }
@@ -203,13 +192,9 @@ namespace cfg {
                 });
             }
             bool is_fully_developed() {
-                bool counter_example_found = false;
-                map_tree(root.get(), [&](node const* t) {
-                    if (state(t) == node_state::undeveloped_nonterminal) {
-                        counter_example_found = true;
-                    }
+                return std::none_of(begin(), end(), [&](node const* t) {
+                    return state(t) == node_state::undeveloped_nonterminal;
                 });
-                return !counter_example_found;
             }
     };
 
