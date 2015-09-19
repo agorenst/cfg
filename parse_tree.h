@@ -156,6 +156,18 @@ namespace cfg {
                 }
             }
 
+            void print_tree_rec(std::ostream& o, node const* t, int d = 0) const {
+                for (int i = 0; i < 2 *d; ++i) {
+                    o << " ";
+                }
+                o << t->my_symbol << endl;
+                for (auto&& c : t->children) {
+                    print_tree_rec(o, c.get(), d+1);
+                }
+            }
+
+
+
         public:
             parse_tree(const parse_tree& p): g(p.g), root(p.root) {}
             parse_tree(const grammar& g):
@@ -183,10 +195,13 @@ namespace cfg {
             void print_leaves(std::ostream& o) const {
                 print_tree(o, root.get());
             }
+            void print_tree(std::ostream& o) const {
+                print_tree_rec(o, root.get());
+            }
             int size() const {
                 return std::distance(begin(), end());
             }
-            int leaf_count() {
+            int leaf_count() const {
                 return std::count_if(begin(), end(), [&](node const* t) {
                     return state(t) == node_state::terminal_leaf;
                 });
@@ -201,7 +216,7 @@ namespace cfg {
 }
 
 std::ostream& operator<<(std::ostream& o, const cfg::parse_tree& p) {
-    p.print_leaves(o);
+    p.print_tree(o);
     return o;
 }
 

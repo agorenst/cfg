@@ -6,4 +6,4 @@ parse_tree: cfg parse_tree.cpp parse_tree.h
 	g++ -g -Wall -std=c++11 parse_tree.cpp cfg.o -o parse_tree
 
 clean:
-	rm -f *~ *.o parse_tree
+	rm -f *~ *.o parse_tree a.out cfg
