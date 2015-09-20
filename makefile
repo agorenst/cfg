@@ -1,9 +1,11 @@
-all: cfg parse_tree
+all: print_parse_trees
 
 cfg: cfg.cpp cfg.h
-	g++ -g -Wall -std=c++11 cfg.cpp -c
-parse_tree: cfg parse_tree.cpp parse_tree.h
-	g++ -g -Wall -std=c++11 parse_tree.cpp cfg.o -o parse_tree
+	clang++ -g -Wall -std=c++11 cfg.cpp -c
+parse_tree: cfg.h parse_tree.cpp parse_tree.h
+	clang++ -g -Wall -std=c++11 parse_tree.cpp -c
+print_parse_trees: cfg parse_tree
+	clang++ -g -Wall -std=c++11 cfg.o parse_tree.o print_parse_trees.cpp -o print_parse_trees
 
 clean:
-	rm -f *~ *.o parse_tree a.out cfg
+	rm -f *~ *.o parse_tree a.out cfg print_parse_trees

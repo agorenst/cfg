@@ -50,6 +50,8 @@ namespace cfg {
     // a leaf.
     class parse_tree {
         public:
+            const grammar& g;
+        private:
             // The possible states a parse_tree node can be in.
             // It is invariant that each node is in one
             // of these states.
@@ -112,7 +114,6 @@ namespace cfg {
 
             // These are the only two fields in the parse tree!
             // The root pointer, and a reference to the grammar.
-            const grammar& g;
             std::shared_ptr<node> root = nullptr;
 
             // Assert that children are consistent with the
@@ -166,12 +167,14 @@ namespace cfg {
                 }
             }
 
-
+            node* read_tree(std::istream& in);
 
         public:
             parse_tree(const parse_tree& p): g(p.g), root(p.root) {}
             parse_tree(const grammar& g):
                 g(g), root(new node(g.start_symbol())) {}
+            parse_tree(const grammar& g, std::istream& in):
+                g(g), root(read_tree(in)) {}
 
             // create a new parse tree, a copy of this one but with
             // a production applied
@@ -198,6 +201,7 @@ namespace cfg {
             void print_tree(std::ostream& o) const {
                 print_tree_rec(o, root.get());
             }
+
             int size() const {
                 return std::distance(begin(), end());
             }
@@ -211,13 +215,11 @@ namespace cfg {
                     return state(t) == node_state::undeveloped_nonterminal;
                 });
             }
+            void print_stack(std::stack<std::pair<size_t, node*>>);
     };
 
 }
 
-std::ostream& operator<<(std::ostream& o, const cfg::parse_tree& p) {
-    p.print_tree(o);
-    return o;
-}
+std::ostream& operator<<(std::ostream& o, const cfg::parse_tree& p);
 
 #endif

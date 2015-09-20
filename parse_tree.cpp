@@ -1,6 +1,9 @@
 #include "parse_tree.h"
 
+#include <sstream>
+
 using namespace cfg;
+using namespace std;
 
 parse_tree::node_state parse_tree::state(node const * n) const {
     if (g.is_terminal(n->my_symbol)) {
@@ -60,57 +63,61 @@ bool parse_tree::internal_apply_production(int production_index) {
     }
 }
 
-
-
-
-#include "cfg.h"
-#include "parse_tree.h"
-#include <stack>
-
-using namespace std;
-using namespace cfg;
-
-const cfg::grammar arithmetic{
-    {"S", "S", "+", "S"},
-    {"S", "S", "-", "S"},
-    {"S", "S", "/", "S"},
-    {"S", "S", "*", "S"},
-    {"S", "n"}
-};
-
-
-
-std::list<cfg::parse_tree> all_develop_of_leaf(const parse_tree& p) {
-    std::list<parse_tree> ret_val = {};
-    if (!p.has_undeveloped()) { return ret_val; }
-    symbol to_develop = p.undeveloped_symbol();
-
-    assert(p.g.is_nonterminal(to_develop));
-
-    for (auto&& production : p.g.productions_from_nonterminal(to_develop)) {
-        int index = p.g.index_of(production);
-        ret_val.push_back(p.apply_production(index));
+void parse_tree::print_stack(stack<pair<size_t, parse_tree::node*>> s) {
+    cout << "[";
+    while(s.size() > 0) {
+        cout << "(" << s.top().first << " " << s.top().second->my_symbol << ")";
+        s.pop();
     }
-    return ret_val;
+    cout << "]";
+    cout << endl;
 }
 
-int main(int argc, char* argv[]) {
-    parse_tree start(arithmetic);
-    std::stack<parse_tree> work_list;
-    work_list.push(start);
-    while(work_list.size()) {
-        auto x = work_list.top();
-        work_list.pop();
-        if (x.leaf_count() > atoi(argv[1])) {
-            continue;
-        }
-        if (!x.has_undeveloped()) {
-            cerr << x << endl;
+// Given the result of the << operator, be able to create a new tree
+// from that.
+parse_tree::node* parse_tree::read_tree(std::istream& i) {
+    stack<pair<size_t, node*>> working_stack;
+    string nextline;
+    while(getline(i,nextline)) {
+        print_stack(working_stack);
+
+        // parse the input. Fisrt, the depth
+        auto depth = nextline.find_first_not_of(" ");
+        if (depth % 2 != 0) { return nullptr; } // fail
+        depth /= 2;
+
+        // Then the value of the node we're reading in.
+        stringstream strstr(nextline);
+        string value;
+        strstr >> value;
+
+        // this is our root
+        if (working_stack.size() == 0) {
+            if (depth != 0) { return nullptr; } // fail
+            working_stack.push(make_pair(depth, new node(value)));
         }
         else {
-            for (auto&& t : all_develop_of_leaf(x)) {
-                work_list.push(t);
+            int current_depth = -1;
+            node* current_parent = nullptr;
+            // pop until we see our parent
+            tie(current_depth, current_parent) = working_stack.top();
+            while(current_depth >= depth) {
+                working_stack.pop();
+                tie(current_depth, current_parent) = working_stack.top();
             }
+            tie(current_depth, current_parent) = working_stack.top();
+            // assume everything works as we want, put in error-checking later
+            auto node_to_add = make_shared<node>(value);
+            current_parent->children.push_back(node_to_add);
+            working_stack.push(make_pair(depth, node_to_add.get()));
         }
     }
+    while(working_stack.size() > 1) { working_stack.pop(); }
+    return working_stack.top().second;
+}
+
+
+std::ostream& operator<<(std::ostream& o, const cfg::parse_tree& p) {
+    p.print_tree(o);
+    return o;
 }
