@@ -63,33 +63,35 @@ bool parse_tree::internal_apply_production(int production_index) {
     }
 }
 
-void parse_tree::print_stack(stack<pair<size_t, parse_tree::node*>> s) {
-    cout << "[";
-    while(s.size() > 0) {
-        cout << "(" << s.top().first << " " << s.top().second->my_symbol << ")";
-        s.pop();
-    }
-    cout << "]";
-    cout << endl;
-}
-
 // Given the result of the << operator, be able to create a new tree
 // from that.
+
+pair<size_t, string> parse_tree_line(string line) {
+    auto depth = line.find_first_not_of(" ");
+
+    stringstream strstr(line);
+    string value;
+    strstr >> value;
+
+    if (   depth % 2 != 0
+        || value.size() == 0) {
+        return make_pair(-1, ""); // error
+    }
+
+    return make_pair(depth/2, value);
+}
+
 parse_tree::node* parse_tree::read_tree(std::istream& i) {
     stack<pair<size_t, node*>> working_stack;
     string nextline;
     while(getline(i,nextline)) {
-        print_stack(working_stack);
 
-        // parse the input. Fisrt, the depth
-        auto depth = nextline.find_first_not_of(" ");
-        if (depth % 2 != 0) { return nullptr; } // fail
-        depth /= 2;
-
-        // Then the value of the node we're reading in.
-        stringstream strstr(nextline);
+        size_t depth;
         string value;
-        strstr >> value;
+        tie(depth, value) = parse_tree_line(nextline);
+
+        // skip lines we can't parse.
+        if (depth == -1 || value.size() == 0) { continue; }
 
         // this is our root
         if (working_stack.size() == 0) {
@@ -97,18 +99,25 @@ parse_tree::node* parse_tree::read_tree(std::istream& i) {
             working_stack.push(make_pair(depth, new node(value)));
         }
         else {
+            // pop until we see our parent
+            while(working_stack.top().first >= depth) {
+                working_stack.pop();
+            }
+
             int current_depth = -1;
             node* current_parent = nullptr;
-            // pop until we see our parent
+
+            // can't deal with forests right now.
+            if (working_stack.size() == 0) { return nullptr; }
             tie(current_depth, current_parent) = working_stack.top();
-            while(current_depth >= depth) {
-                working_stack.pop();
-                tie(current_depth, current_parent) = working_stack.top();
-            }
-            tie(current_depth, current_parent) = working_stack.top();
+
             // assume everything works as we want, put in error-checking later
             auto node_to_add = make_shared<node>(value);
+
+            // add us to the tree itself
             current_parent->children.push_back(node_to_add);
+
+            // add us to the stack.
             working_stack.push(make_pair(depth, node_to_add.get()));
         }
     }
@@ -120,4 +129,10 @@ parse_tree::node* parse_tree::read_tree(std::istream& i) {
 std::ostream& operator<<(std::ostream& o, const cfg::parse_tree& p) {
     p.print_tree(o);
     return o;
+}
+
+void parse_tree::print_terminals_dfs(std::ostream& o) {
+    for_each(begin(), end(), [&](node* n) {
+        if (g.is_terminal(n->my_symbol)) { o << n->my_symbol << " "; }
+    });
 }

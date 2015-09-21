@@ -215,7 +215,9 @@ namespace cfg {
                     return state(t) == node_state::undeveloped_nonterminal;
                 });
             }
-            void print_stack(std::stack<std::pair<size_t, node*>>);
+
+            void print_terminals_dfs(std::ostream& o);
+
     };
 
 }
