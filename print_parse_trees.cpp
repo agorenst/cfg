@@ -12,6 +12,12 @@ const cfg::grammar arithmetic{
     {"S", "S", "*", "S"},
     {"S", "n"}
 };
+const cfg::grammar lambdaGrammar {
+    {"S", "(", "L", "N", "S", ")"},
+    {"S", "N"},
+    {"S", "(", "S", "S", ")"},
+    {"N", "n"},
+};
 
 std::list<cfg::parse_tree> all_develop_of_leaf(const parse_tree& p) {
     std::list<parse_tree> ret_val = {};
@@ -28,7 +34,7 @@ std::list<cfg::parse_tree> all_develop_of_leaf(const parse_tree& p) {
 }
 
 int main(int argc, char* argv[]) {
-    parse_tree start(arithmetic);
+    parse_tree start(lambdaGrammar);
     std::stack<parse_tree> work_list;
     work_list.push(start);
     while(work_list.size()) {
@@ -38,7 +44,9 @@ int main(int argc, char* argv[]) {
             continue;
         }
         if (!x.has_undeveloped()) {
-            cerr << x << endl;
+            x.print_leaves(cout);
+            cout << '\n';
+            //cerr << x << endl;
         }
         else {
             for (auto&& t : all_develop_of_leaf(x)) {

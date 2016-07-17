@@ -144,15 +144,15 @@ namespace cfg {
             parse_tree(const grammar& g, std::shared_ptr<node> new_root):
                 g(g), root(new_root) { assert(root != nullptr); }
 
-            void print_tree(std::ostream& o, node* p) const {
+            void print_tree(std::ostream& o, node* p, std::string delim = "") const {
                 // if I'm a leaf, print me
                 if (p->children.size() == 0) {
-                    o << p->my_symbol;
+                    o << p->my_symbol << delim;
                 }
                 // Otherwise, get to my kids.
                 else {
                     for(auto&& c : p->children) {
-                        print_tree(o, c.get());
+                        print_tree(o, c.get(), delim);
                     }
                 }
             }
@@ -195,8 +195,8 @@ namespace cfg {
                 return und->my_symbol;
             }
 
-            void print_leaves(std::ostream& o) const {
-                print_tree(o, root.get());
+            void print_leaves(std::ostream& o, std::string delimiter = " ") const {
+                print_tree(o, root.get(), delimiter);
             }
             void print_tree(std::ostream& o) const {
                 print_tree_rec(o, root.get());
