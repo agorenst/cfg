@@ -5,6 +5,7 @@
 #include <list>
 #include <initializer_list>
 #include <iostream>
+#include <set>
 
 //////////////////////////////////////////////////////////////////////////////
 // This modules present a basic CFG representation in the namespace "cfg".
@@ -75,6 +76,12 @@ namespace cfg {
         // is any that never appears as a LHS.
         bool is_nonterminal(const symbol& p) const;
         bool is_terminal(const symbol& p) const;
+
+        // pretty inefficient!
+        std::set<symbol> all_symbols() const;
+        std::set<symbol> all_nonterminals() const;
+        std::set<symbol> all_terminals() const;
+        const sequence<production>& all_productions() const;
     };
 
     std::ostream& operator<<(std::ostream& o, const grammar& g);

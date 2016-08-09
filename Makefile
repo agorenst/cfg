@@ -1,4 +1,7 @@
-all: print_parse_trees
+all: print_parse_trees first
+
+first: cfg first.cpp
+	clang++ -Wall -std=c++11 cfg.o first.cpp -o first
 
 cfg: cfg.cpp cfg.h
 	clang++ -g -Wall -std=c++11 cfg.cpp -c

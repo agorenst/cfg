@@ -8,6 +8,7 @@
 #include <iostream>
 #include <iterator>
 #include <algorithm>
+#include <set>
 
 using namespace std;
 
@@ -60,6 +61,37 @@ namespace cfg {
     }
     bool grammar::is_terminal(const symbol& s) const {
         return !is_nonterminal(s);
+    }
+
+    set<symbol> grammar::all_symbols() const {
+        set<symbol> ret;
+        for_each(prods.begin(), prods.end(), [&ret](const production& p) {
+            ret.insert(p.lhs);
+            for_each(p.rhs.begin(), p.rhs.end(), [&ret](const symbol& s) {
+                ret.insert(s);
+            });
+        });
+        return ret;
+    }
+    
+    set<symbol> grammar::all_nonterminals() const {
+        auto all_syms = all_symbols();
+        set<symbol> ret;
+        for_each(all_syms.begin(), all_syms.end(), [&](const symbol& s) {
+            if (is_nonterminal(s)) { ret.insert(s); }
+        });
+        return ret;
+    }
+    set<symbol> grammar::all_terminals() const {
+        auto all_syms = all_symbols();
+        set<symbol> ret;
+        for_each(all_syms.begin(), all_syms.end(), [&](const symbol& s) {
+            if (is_terminal(s)) { ret.insert(s); }
+        });
+        return ret;
+    }
+    const sequence<production>& grammar::all_productions() const {
+        return prods;
     }
 
     // IO operations.
