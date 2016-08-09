@@ -5,6 +5,16 @@
 #include <algorithm>
 #include "cfg.h"
 
+// Following mainly the 3rd edition of Michael Scott's book, with some references to
+// the 2nd edition of the dragon book.
+// Weirdness: MScott's algorithms don't include EPS (epsilon) in the sets, but they do in the dragon book.
+// But the dragon book also includes an "end of program" symbol no matter what?
+// I should revisit all this to make sure I'm not making hidden assumptions. Presumably, these functions
+// should be computable for all grammars, not jut LALR or whatever (though restricted grammars may be
+// the only ones for which these sets are useful).
+//
+// Next up: creating a table-driven pasrer...
+
 
 using namespace std;
 using namespace cfg;
@@ -99,7 +109,21 @@ map<symbol, set<symbol>> compute_follow(const grammar& g) {
     return FOLLOW;
 }
 
-void print_set(const map<symbol, set<symbol>>& S) {
+map<production, set<symbol>> compute_predict(const grammar& g) {
+    auto FIRST = compute_first(g);
+    auto FOLLOW = compute_follow(g);
+    map<production, set<symbol>> PREDICT;
+    for (auto& p : g.all_productions()) {
+        PREDICT[p] = sequence_first(p.rhs.begin(), p.rhs.end(), FIRST);
+        if (sequence_epsilon(p.rhs.begin(), p.rhs.end(), FIRST)) {
+            PREDICT[p].insert(FOLLOW[p.lhs].begin(), FOLLOW[p.lhs].end());
+        }
+    }
+    return PREDICT;
+}
+
+template <class K>
+void print_set(const map<K, set<symbol>>& S) {
     cout << "{" << endl;
     for (auto& p : S) {
         cout << p.first << " : { ";
@@ -119,4 +143,7 @@ int main() {
     auto FOLLOW = compute_follow(G);
     cout << "=========================" << endl;
     print_set(FOLLOW);
+    cout << "=========================" << endl;
+    auto PREDICT = compute_predict(G);
+    print_set(PREDICT);
 }

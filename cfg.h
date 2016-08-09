@@ -48,6 +48,12 @@ namespace cfg {
             production(const std::initializer_list<symbol>& l):
                 lhs(*l.begin()), rhs(next(l.begin()), l.end()) {}
             production(const symbol& s, const sequence<symbol>& seq): lhs(s), rhs(seq) {}
+
+            bool operator<(const production& p) const {
+                if (lhs < p.lhs) { return true; }
+                if (lhs > p.lhs) { return false; }
+                return rhs < p.rhs;
+            }
     };
 
     std::ostream& operator<<(std::ostream& o, const production& p);
