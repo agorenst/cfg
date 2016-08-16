@@ -77,7 +77,7 @@ namespace cfg {
         // Reasons about symbols and nonterminals.
         symbol start_symbol() const;
         sequence<production> productions_from_nonterminal(const symbol lhs) const;
-        int size() { return prods.size(); }
+        int size() const { return prods.size(); }
 
         // A nonterminal is any symbol that appears as a LHS in a production,
         // is any that never appears as a LHS.

@@ -29,8 +29,6 @@ int main() {
                     for (auto q : G.productions_from_nonterminal(*jt)) {
                         sequence<symbol> new_rhs(q.rhs.begin(), q.rhs.end());
                         for (auto st = next(p.rhs.begin()); st != p.rhs.end(); ++st) { new_rhs.push_back(*st); }
-                        //new_rhs.insert(next(p.rhs.begin()), p.rhs.end());
-                        //cout << "Adding new production!" << endl;
                         new_grammar_productions.push_back({*it, new_rhs});
                     }
                     replaced.insert(p);
@@ -50,7 +48,6 @@ int main() {
     sequence<production> final_productions;
     int new_nonterm = 0;
     for (auto A : G1.all_nonterminals()) {
-        cout << A << endl;
 
         // filter all of the productions from A into
         // either left-recursive RHS, or not.
@@ -70,7 +67,6 @@ int main() {
                 });
 
         // so we have our two sets.
-        cout << "Done partitioning" << endl;
 
         // IF there was no left recursion, insert our productions as normal
         // and continue;
@@ -82,7 +78,6 @@ int main() {
         // otherwise, we do the transformation:
         else {
             auto new_nonterminal = A+std::to_string(new_nonterm++);
-            cout << "new_nonterminal " << new_nonterminal << endl;
             auto nonterminals = G1.all_nonterminals();
             assert(nonterminals.find(new_nonterminal) == nonterminals.end());
             for (auto rhs : beta_rhs) {

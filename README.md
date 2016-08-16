@@ -18,3 +18,8 @@ Context free grammars and related algorithms
 <https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_Form>
 
 <https://en.wikipedia.org/wiki/Binary_expression_tree>
+
+FINALLY
+http://dx.doi.org/10.1016/S0019-9958(65)90426-2
+
+http://dl.acm.org/citation.cfm?id=321179
