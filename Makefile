@@ -1,18 +1,19 @@
-closure_and_goto: cfg closure_and_goto.cpp
-	clang++ -Wall -std=c++11 cfg.o closure_and_goto.cpp -o closure_and_goto
-remove_left_recursion: cfg remove_left_recursion.cpp
-	clang++ -Wall -std=c++11 cfg.o remove_left_recursion.cpp -o remove_left_recursion
-all: print_parse_trees first
+CXX=clang++
+CXXFLAGS=-O2 -Wall -std=c++14
+# we set this because cc is used to link.
+CC=clang++
 
-first: cfg first.cpp
-	clang++ -Wall -std=c++11 cfg.o first.cpp -o first
+# We rely on implicit rules for C++ files.
 
-cfg: cfg.cpp cfg.h
-	clang++ -g -Wall -std=c++11 cfg.cpp -c
-parse_tree: cfg.h parse_tree.cpp parse_tree.h
-	clang++ -g -Wall -std=c++11 parse_tree.cpp -c
-print_parse_trees: cfg parse_tree
-	clang++ -g -Wall -std=c++11 cfg.o parse_tree.o print_parse_trees.cpp -o print_parse_trees
+programs=first print_parse_trees remove_left_recursion closure_and_goto left_factor
+
+all: $(programs)
+
+first: cfg.o
+print_parse_trees: parse_tree.o cfg.o
+remove_left_recursion: cfg.o
+closure_and_goto: cfg.o
+left_factor: cfg.o
 
 clean:
-	rm -f *~ *.o parse_tree a.out cfg print_parse_trees first remove_left_recursion closure_and_goto
+	rm -f -r *.o *~ $(programs)
