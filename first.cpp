@@ -196,3 +196,27 @@ map<production, set<symbol>> compute_predict(const grammar& g) {
   return PREDICT;
 }
 
+// absolutely dead stupid definition.
+pair<production, production> compute_predict_predict_conflict(const grammar& g) {
+  auto PREDICT = compute_predict(g);
+  for (auto&& p : g.all_productions()) {
+    for (auto&& q : g.all_productions()) {
+      if (q >= p) { continue; }
+      if (q.lhs == p.lhs) {
+        bool conflicting = false;
+        for (auto&& s : PREDICT[p]) {
+          if (conflicting) break;
+          for (auto&& r : PREDICT[q]) {
+            if (s == r) {
+              cout << p << endl << q << endl;
+              conflicting = true;
+              break;
+              //return {p, q};
+            }
+          }
+        }
+      }
+    }
+  }
+  return {{"", ""},{"", ""}};
+}

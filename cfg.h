@@ -43,6 +43,15 @@ namespace cfg {
             bool operator==(const production& p) const {
                 return lhs == p.lhs && rhs == p.rhs;
             }
+            bool operator>(const production& p) const {
+              if (lhs == p.lhs) {
+                return rhs > p.rhs;
+              }
+              return lhs > p.lhs;
+            }
+            bool operator>=(const production& p) const {
+              return (*this) == p || (*this) > p;
+            }
             // allows us to write something like:
             // {"a", "b", "c"} for the production a -> bc
             production(const std::initializer_list<symbol>& l):

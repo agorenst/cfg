@@ -1,4 +1,5 @@
-#include <iostream>
+#include "cfg1_to_cfg.h"
+
 #include <sstream>
 #include <string>
 #include <cassert>
@@ -77,10 +78,10 @@ production remove_escapes(production p) {
   return {p.lhs, new_rhs};
 }
 
-int main() {
+grammar parse_cfg1_file(std::istream& in) {
   string line;
   string word;
-  while (getline(cin, line)) {
+  while (getline(in, line)) {
     stringstream tokenizer(line);
     string lhs;
 
@@ -128,5 +129,5 @@ int main() {
       new_grammar.push_back(remove_escapes(p));
     }
   }
-  cout << grammar(new_grammar);
+  return grammar{new_grammar};
 }

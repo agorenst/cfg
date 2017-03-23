@@ -35,5 +35,11 @@ int main() {
   cout << "=========================" << endl;
   auto PREDICT = compute_predict(G);
   print_set(PREDICT);
+  cout << "=========================" << endl;
+  auto x = compute_predict_predict_conflict(G);
+  if (get<0>(x).lhs != "") {
+    cout << get<0>(x) << endl;
+    cout << get<1>(x) << endl;
+  }
 }
 
